@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -12,9 +12,9 @@ import (
 
 var (
 	dataDir string
-	area        string
-	country     string
-	rootCmd     = &cobra.Command{
+	area    string
+	country string
+	rootCmd = &cobra.Command{
 		Use:   "headway-build",
 		Short: "builds headway components",
 		Run: func(_ *cobra.Command, _ []string) {

@@ -47,11 +47,11 @@ func finalPause() tea.Cmd {
 }
 
 type model struct {
-	url      string
-	dest     string
-	pw       *progresswriter.ProgressWriter
-	spinner  spinner.Model
-	err      error
+	url     string
+	dest    string
+	pw      *progresswriter.ProgressWriter
+	spinner spinner.Model
+	err     error
 }
 
 func (m model) Init() tea.Cmd {
@@ -66,7 +66,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
-		
+
 		if m.pw.GetPercent() >= 1 {
 			cmd = tea.Batch(cmd, tea.Quit)
 		}
@@ -130,10 +130,10 @@ func Download(url, dest string) bool {
 	pw := progresswriter.New(int(resp.ContentLength), file, resp.Body, p)
 
 	m := model{
-		pw:       &pw,
-		spinner:  spinner.New(spinner.WithSpinner(spinner.Dot)),
-		url:      url,
-		dest:     dest,
+		pw:      &pw,
+		spinner: spinner.New(spinner.WithSpinner(spinner.Dot)),
+		url:     url,
+		dest:    dest,
 	}
 
 	m.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
@@ -156,7 +156,6 @@ func Download(url, dest string) bool {
 
 	return true
 }
-
 
 func shouldRedownload(headers http.Header, existing os.FileInfo) bool {
 	lastModified, err := getLastModified(headers)

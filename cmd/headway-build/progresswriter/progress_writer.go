@@ -22,10 +22,10 @@ type ProgressWriter struct {
 // New creates a ProgressWriter
 func New(total int, file *os.File, reader io.Reader, p *tea.Program) ProgressWriter {
 	return ProgressWriter{
-		total:      total,
-		file:       file,
-		reader:     reader,
-		p:          p,
+		total:  total,
+		file:   file,
+		reader: reader,
+		p:      p,
 	}
 }
 
