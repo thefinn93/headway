@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-
-	"github.com/headwaymaps/headway/cmd/headway-build/download"
+	"github.com/headwaymaps/headway/cmd/headway-build/tasks"
+	"github.com/headwaymaps/headway/cmd/headway-build/tasks/task"
 )
 
 var (
@@ -19,15 +19,14 @@ var (
 		Short: "builds headway components",
 		Run: func(_ *cobra.Command, _ []string) {
 			if err := os.Mkdir(dataDir, 0755); err != nil && !os.IsExist(err) {
-				fmt.Printf("error creating %s: %s", dataDir, err)
-				fmt.Println()
+				fmt.Println(task.ErrorStyle(fmt.Sprintf("error creating %s: %s", dataDir, err)))
 				os.Exit(1)
 			}
 
-			download.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", area, area), filepath.Join(dataDir, "data.osm.pbf"))
+			tasks.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", area, area), filepath.Join(dataDir, "data.osm.pbf"))
 
-			if download.Download("https://f000.backblazeb2.com/file/headway/sources.tar", filepath.Join(dataDir, "sources.tar")) {
-				fmt.Println("would untar " + dataDir + "/sources.tar if that was impemented. too bad it isnt!")
+			if tasks.Download("https://f000.backblazeb2.com/file/headway/sources.tar", filepath.Join(dataDir, "sources.tar")) {
+				tasks.Untar(filepath.Join(dataDir, "sources.tar"), filepath.Join(dataDir, "sources"))
 			}
 		},
 	}
