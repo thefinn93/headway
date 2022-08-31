@@ -95,7 +95,7 @@ func (p *Podman3RunTask) Run() (task.Result, error) {
 
 	p.status = fmt.Sprintf("ran %s", p.image)
 
-	return task.Result{}, nil
+	return task.Result{Icon: task.ResultIconSuccess}, nil
 }
 
 func (p *Podman3RunTask) restartTimer(status string) {
@@ -120,8 +120,8 @@ func getPodman3Mount(vol ContainerVolume) (specs.Mount, error) {
 
 	return specs.Mount{
 		Destination: vol.Destination,
-		Source: source,
-		Options: vol.Options,
-		Type: "bind",
+		Source:      source,
+		Options:     vol.Options,
+		Type:        "bind",
 	}, nil
 }

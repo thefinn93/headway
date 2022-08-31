@@ -69,7 +69,7 @@ func (u *UntarTask) Run() (task.Result, error) {
 	}
 
 	return task.Result{
-		Icon: task.ResultIconSuccess,
+		Icon:    task.ResultIconSuccess,
 		Message: fmt.Sprintf("untaring %s (%d files)", u.source, i),
 	}, nil
 }

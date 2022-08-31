@@ -10,8 +10,8 @@ import (
 type ResultIcon string
 
 const (
-	ResultIconSuccess = ResultIcon("✅")
-	ResultIconError = ResultIcon("⚠️")
+	ResultIconSuccess   = ResultIcon("✅")
+	ResultIconError     = ResultIcon("⚠️")
 	ResultIconUnchanged = ResultIcon("☑️")
 )
 
@@ -25,7 +25,7 @@ type Task interface {
 
 type Result struct {
 	Message string
-	Icon ResultIcon
+	Icon    ResultIcon
 }
 
 // Execute a task and show it's status to the user

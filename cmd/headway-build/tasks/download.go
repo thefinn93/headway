@@ -64,9 +64,9 @@ func (d *DownloadTask) Run() (task.Result, error) {
 
 	if !shouldRedownload(resp.Header, existing) {
 		return task.Result{
-			Icon: task.ResultIconUnchanged,
+			Icon:    task.ResultIconUnchanged,
 			Message: fmt.Sprintf("not redownloading %s to %s", d.url, d.dest),
-			}, nil
+		}, nil
 	}
 
 	resp, err = getResponse(d.url)
@@ -96,7 +96,7 @@ func (d *DownloadTask) Run() (task.Result, error) {
 	}
 
 	return task.Result{
-		Icon: task.ResultIconSuccess,
+		Icon:    task.ResultIconSuccess,
 		Message: fmt.Sprintf("downloaded %s to %s", d.url, d.dest),
 	}, nil
 }

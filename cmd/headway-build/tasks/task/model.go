@@ -11,7 +11,7 @@ type model struct {
 	spinner spinner.Model
 	done    bool
 	err     error
-	result Result
+	result  Result
 }
 
 func newModel(task Task) model {
@@ -30,8 +30,6 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		return m, tea.Quit
 
 	case spinner.TickMsg:
 		var cmd tea.Cmd
