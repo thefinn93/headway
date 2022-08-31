@@ -11,6 +11,7 @@ type model struct {
 	spinner spinner.Model
 	done    bool
 	err     error
+	result Result
 }
 
 func newModel(task Task) model {
@@ -49,5 +50,5 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return m.spinner.View() + TextStyle(m.task.View())
+	return " " + m.spinner.View() + TextStyle(m.task.View())
 }

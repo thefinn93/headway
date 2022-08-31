@@ -28,10 +28,10 @@ func (u UntarTask) View() string {
 	return u.status
 }
 
-func (u *UntarTask) Run() error {
+func (u *UntarTask) Run() (task.Result, error) {
 	f, err := os.Open(u.source)
 	if err != nil {
-		return err
+		return task.Result{}, fmt.Errorf("error reading %s: %v", u.source, err)
 	}
 
 	tr := tar.NewReader(f)
@@ -42,7 +42,7 @@ func (u *UntarTask) Run() error {
 			break
 		}
 		if err != nil {
-			return err
+			return task.Result{}, fmt.Errorf("error reading tar file: %v", err)
 		}
 		i++
 
@@ -50,24 +50,26 @@ func (u *UntarTask) Run() error {
 
 		u.status = fmt.Sprintf("untaring %s (%d - %s)", u.source, i, filename)
 
-		err = os.Mkdir(filepath.Dir(filename), 0755)
+		dir := filepath.Dir(filename)
+		err = os.Mkdir(dir, 0755)
 		if err != nil && !os.IsExist(err) {
-			return err
+			return task.Result{}, fmt.Errorf("error making directory %s: %v", dir, err)
 		}
 
 		file, err := os.Create(filename)
 		if err != nil {
-			return err
+			return task.Result{}, fmt.Errorf("error writing to %s: %v", filename, err)
 		}
 		defer file.Close()
 
 		if _, err = io.Copy(file, tr); err != nil {
-			return err
+			return task.Result{}, fmt.Errorf("error extracting file %s: %v", filename, err)
 		}
 		file.Close()
 	}
 
-	u.status = fmt.Sprintf("untaring %s (%d files)", u.source, i)
-
-	return nil
+	return task.Result{
+		Icon: task.ResultIconSuccess,
+		Message: fmt.Sprintf("untaring %s (%d files)", u.source, i),
+	}, nil
 }

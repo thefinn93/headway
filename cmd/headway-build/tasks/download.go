@@ -22,11 +22,11 @@ type DownloadTask struct {
 	dest     string
 	progress *ProgressReader
 	message  string
-	changed bool
+	changed  bool
 }
 
 func Download(url, dest string) bool {
-	t  := DownloadTask{
+	t := DownloadTask{
 		url:  url,
 		dest: dest,
 	}
@@ -51,54 +51,54 @@ func (d DownloadTask) View() string {
 
 }
 
-func (d *DownloadTask) Run() error {
+func (d *DownloadTask) Run() (task.Result, error) {
 	existing, err := os.Stat(d.dest)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("error checking target file %s: %v", d.dest, err)
+		return task.Result{}, fmt.Errorf("error checking target file %s: %v", d.dest, err)
 	}
 
 	resp, err := http.Head(d.url)
 	if err != nil {
-		return fmt.Errorf("error making http HEAD request to %s before downloading: %v", d.url, err)
+		return task.Result{}, fmt.Errorf("error making http HEAD request to %s before downloading: %v", d.url, err)
 	}
 
 	if !shouldRedownload(resp.Header, existing) {
-		d.message = fmt.Sprintf("not redownloading %s to %s", d.url, d.dest)
-		return nil
+		return task.Result{
+			Icon: task.ResultIconUnchanged,
+			Message: fmt.Sprintf("not redownloading %s to %s", d.url, d.dest),
+			}, nil
 	}
 
 	resp, err = getResponse(d.url)
 	if err != nil {
-		return fmt.Errorf("error downloading %s: %v", d.url, err)
+		return task.Result{}, fmt.Errorf("error downloading %s: %v", d.url, err)
 	}
 	defer resp.Body.Close()
 
 	file, err := os.Create(d.dest)
 	if err != nil {
-		return err
+		return task.Result{}, fmt.Errorf("error creating %s: %v", d.dest, err)
 	}
 	defer file.Close()
 
 	d.progress = NewProgressReader(int(resp.ContentLength), resp.Body)
-
-	if resp.ContentLength == 0 {
-		return nil
-	}
-
 	d.changed = true
 
 	f, err := os.Create(d.dest)
 	if err != nil {
-		return fmt.Errorf("error opening %s for writing: %v", d.dest, err)
+		return task.Result{}, fmt.Errorf("error opening %s for writing: %v", d.dest, err)
 	}
 	defer f.Close()
 
 	_, err = io.Copy(f, d.progress)
 	if err != nil {
-		return fmt.Errorf("error downloading %s to %s: %v", d.url, d.dest, err)
+		return task.Result{}, fmt.Errorf("error downloading %s to %s: %v", d.url, d.dest, err)
 	}
 
-	return nil
+	return task.Result{
+		Icon: task.ResultIconSuccess,
+		Message: fmt.Sprintf("downloaded %s to %s", d.url, d.dest),
+	}, nil
 }
 
 func getResponse(url string) (*http.Response, error) {

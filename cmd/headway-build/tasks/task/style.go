@@ -10,6 +10,4 @@ var (
 
 	// ErrorStyle is the default error text
 	ErrorStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#dd0000")).Bold(true).Render
-
-	padding = "  "
 )

@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cobra"
 	"github.com/headwaymaps/headway/cmd/headway-build/tasks"
 	"github.com/headwaymaps/headway/cmd/headway-build/tasks/task"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -28,6 +28,13 @@ var (
 			if tasks.Download("https://f000.backblazeb2.com/file/headway/sources.tar", filepath.Join(dataDir, "sources.tar")) {
 				tasks.Untar(filepath.Join(dataDir, "sources.tar"), filepath.Join(dataDir, "sources"))
 			}
+
+			tasks.RunContainer("ghcr.io/onthegomap/planetiler", tasks.RunContainerOptions{
+				Command: []string{"--force", "--osm_path=/data/data.osm.pbf"},
+				Volumes: []tasks.ContainerVolume{
+					tasks.ContainerVolume{Destination: "/data", Source: dataDir},
+				},
+			})
 		},
 	}
 )
