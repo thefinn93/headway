@@ -107,7 +107,13 @@ func (g *GTFSDownloadTask) Run() (task.Result, error) {
 		})
 	}
 
+	resultIcon := task.ResultIconSuccess
+	if len(g.Feeds) == 0 {
+		resultIcon = task.ResultIconUnchanged
+	}
+
 	return task.Result{
+		Icon: resultIcon,
 		Message: fmt.Sprintf("found %d transit feeds", len(g.Feeds)),
 	}, nil
 }
