@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -52,6 +53,11 @@ func (d DownloadTask) View() string {
 }
 
 func (d *DownloadTask) Run() (task.Result, error) {
+	dir := filepath.Dir(d.dest)
+	if err := os.Mkdir(dir, 0755); err != nil && !os.IsExist(err) {
+		return task.Result{}, fmt.Errorf("error creating directory %s: %v", dir, err)
+	}
+
 	existing, err := os.Stat(d.dest)
 	if err != nil && !os.IsNotExist(err) {
 		return task.Result{}, fmt.Errorf("error checking target file %s: %v", d.dest, err)
@@ -65,7 +71,7 @@ func (d *DownloadTask) Run() (task.Result, error) {
 	if !shouldRedownload(resp.Header, existing) {
 		return task.Result{
 			Icon:    task.ResultIconUnchanged,
-			Message: fmt.Sprintf("not redownloading %s to %s", d.url, d.dest),
+			Message: fmt.Sprintf("%s is up to date", d.dest),
 		}, nil
 	}
 

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/headwaymaps/headway/cmd/headway-build/tasks"
-	"github.com/headwaymaps/headway/cmd/headway-build/tasks/task"
 	"github.com/spf13/cobra"
 )
 
@@ -18,23 +17,23 @@ var (
 		Use:   "headway-build",
 		Short: "builds headway components",
 		Run: func(_ *cobra.Command, _ []string) {
-			if err := os.Mkdir(dataDir, 0755); err != nil && !os.IsExist(err) {
-				fmt.Println(task.ErrorStyle(fmt.Sprintf("error creating %s: %s", dataDir, err)))
-				os.Exit(1)
-			}
-
 			tasks.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", area, area), filepath.Join(dataDir, "data.osm.pbf"))
 
 			if tasks.Download("https://f000.backblazeb2.com/file/headway/sources.tar", filepath.Join(dataDir, "sources.tar")) {
 				tasks.Untar(filepath.Join(dataDir, "sources.tar"), filepath.Join(dataDir, "sources"))
 			}
 
-			tasks.RunContainer("ghcr.io/onthegomap/planetiler", tasks.RunContainerOptions{
-				Command: []string{"--force", "--osm_path=/data/data.osm.pbf"},
-				Volumes: []tasks.ContainerVolume{
-					tasks.ContainerVolume{Destination: "/data", Source: dataDir},
-				},
-			})
+			// tasks.RunContainer("ghcr.io/onthegomap/planetiler", tasks.RunContainerOptions{
+			// 	Command: []string{"--force", "--osm_path=/data/data.osm.pbf"},
+			// 	Volumes: []tasks.ContainerVolume{
+			// 		tasks.ContainerVolume{Destination: "/data", Source: dataDir},
+			// 	},
+			// })
+
+			gtfsFeeds := tasks.GTFSDownload(cities[area])
+			for _, feed := range gtfsFeeds {
+				tasks.Download(feed.URL, filepath.Join(dataDir, "gtfs", feed.Filename))
+			}
 		},
 	}
 )
