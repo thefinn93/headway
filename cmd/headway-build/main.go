@@ -23,17 +23,25 @@ var (
 				tasks.Untar(filepath.Join(dataDir, "sources.tar"), filepath.Join(dataDir, "sources"))
 			}
 
-			// tasks.RunContainer("ghcr.io/onthegomap/planetiler", tasks.RunContainerOptions{
-			// 	Command: []string{"--force", "--osm_path=/data/data.osm.pbf"},
-			// 	Volumes: []tasks.ContainerVolume{
-			// 		tasks.ContainerVolume{Destination: "/data", Source: dataDir},
-			// 	},
-			// })
+			tasks.RunContainer("ghcr.io/onthegomap/planetiler", tasks.RunContainerOptions{
+				Command: []string{"--force", "--osm_path=/data/data.osm.pbf"},
+				Volumes: []tasks.ContainerVolume{
+					tasks.ContainerVolume{Destination: "/data", Source: dataDir},
+				},
+			})
 
 			gtfsFeeds := tasks.GTFSDownload(cities[area])
+			gtfsDir := filepath.Join(dataDir, "gtfs")
 			for _, feed := range gtfsFeeds {
-				tasks.Download(feed.URL, filepath.Join(dataDir, "gtfs", feed.Filename))
+				tasks.Download(feed.URL, filepath.Join(gtfsDir, feed.Filename))
 			}
+
+			tasks.RunContainer("opentripplanner/opentripplanner", tasks.RunContainerOptions{
+				Command: []string{"--build", "--save"},
+				Volumes: []tasks.ContainerVolume{
+					tasks.ContainerVolume{Destination: "/var/opentripplanner", Source: gtfsDir},
+				},
+			})
 		},
 	}
 )

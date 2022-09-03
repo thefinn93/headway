@@ -2,11 +2,11 @@ package tasks
 
 import (
 	"encoding/csv"
-	"path/filepath"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strconv"
 
 	"github.com/headwaymaps/headway/cmd/headway-build/tasks/task"
@@ -33,7 +33,7 @@ type GTFSDownloadTask struct {
 type GTFSFeed struct {
 	Provider string
 	Filename string
-	URL string
+	URL      string
 }
 
 func GTFSDownload(bounds [4]float64) []GTFSFeed {
@@ -103,7 +103,7 @@ func (g *GTFSDownloadTask) Run() (task.Result, error) {
 		g.Feeds = append(g.Feeds, GTFSFeed{
 			Provider: row[gtfsListColumnProviderName],
 			Filename: filepath.Base(u.Path),
-			URL: u.String(),
+			URL:      u.String(),
 		})
 	}
 
@@ -113,7 +113,7 @@ func (g *GTFSDownloadTask) Run() (task.Result, error) {
 	}
 
 	return task.Result{
-		Icon: resultIcon,
+		Icon:    resultIcon,
 		Message: fmt.Sprintf("found %d transit feeds", len(g.Feeds)),
 	}, nil
 }
