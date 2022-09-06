@@ -21,19 +21,22 @@ type podman3RunTask struct {
 	started *time.Time
 	status  string
 	opts    Options
-	log     containerLogger
-	done    bool
+	log     logger
+	running bool
 }
 
-func (p podman3RunTask) View() string {
+func (p *podman3RunTask) View() string {
 	if p.started == nil {
 		return p.status
 	}
 
-	out := fmt.Sprintf("%s (%s)\ncontainer logs:", p.status, time.Since(*p.started).Truncate(time.Second))
-	if p.done {
+	out := fmt.Sprintf("%s (%s)", p.status, time.Since(*p.started).Truncate(time.Second))
+
+	if !p.running {
 		return out
 	}
+
+	out = out + "\ncontainer logs:"
 
 	for l := range p.log.Iter() {
 		out = out + "\n"
@@ -95,11 +98,14 @@ func (p *podman3RunTask) Run() (task.Result, error) {
 	}
 
 	p.restartTimer(fmt.Sprintf("%s %s", p.opts.Name.During, p.opts.Name.Suffix))
+	p.running = true
 
 	err = containers.Attach(ctx, r.ID, nil, p.log.Stdout(), p.log.Stderr(), nil, nil)
 	if err != nil {
 		return task.Result{}, fmt.Errorf("error attaching to container stdout: %v", err)
 	}
+
+	p.running = false
 
 	exitCode, err := containers.Wait(ctx, r.ID, &containers.WaitOptions{
 		Condition: []define.ContainerStatus{define.ContainerStateStopped},
@@ -107,8 +113,6 @@ func (p *podman3RunTask) Run() (task.Result, error) {
 	if err != nil {
 		return task.Result{}, fmt.Errorf("error waiting for container to start: %v", err)
 	}
-
-	p.done = true
 
 	if exitCode != 0 {
 		return task.Result{}, fmt.Errorf("%s %s exited with code %d", p.opts.Name.Before, p.opts.Name.Suffix, exitCode)
