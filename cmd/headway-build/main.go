@@ -5,8 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/headwaymaps/headway/cmd/headway-build/tasks"
 	"github.com/spf13/cobra"
+
+	"github.com/headwaymaps/headway/cmd/headway-build/tasks"
+	"github.com/headwaymaps/headway/cmd/headway-build/tasks/containers"
 )
 
 var (
@@ -17,29 +19,55 @@ var (
 		Use:   "headway-build",
 		Short: "builds headway components",
 		Run: func(_ *cobra.Command, _ []string) {
-			tasks.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", area, area), filepath.Join(dataDir, "data.osm.pbf"))
+			areaDir := filepath.Join(dataDir, area)
 
-			if tasks.Download("https://f000.backblazeb2.com/file/headway/sources.tar", filepath.Join(dataDir, "sources.tar")) {
+			tasks.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", area, area), fmt.Sprintf("%s.osm.pbf", area), filepath.Join(areaDir, "data.osm.pbf"))
+
+			if tasks.Download("https://f000.backblazeb2.com/file/headway/sources.tar", "planetiler sources", filepath.Join(dataDir, "sources.tar")) {
 				tasks.Untar(filepath.Join(dataDir, "sources.tar"), filepath.Join(dataDir, "sources"))
 			}
 
-			tasks.RunContainer("ghcr.io/onthegomap/planetiler", tasks.RunContainerOptions{
-				Command: []string{"--force", "--osm_path=/data/data.osm.pbf"},
-				Volumes: []tasks.ContainerVolume{
-					tasks.ContainerVolume{Destination: "/data", Source: dataDir},
+			containers.RunContainer(containers.Options{
+				Image:   "ghcr.io/onthegomap/planetiler",
+				Name:    containers.TaskName{Before: "generate", During: "generating", After: "generated", Suffix: "mbtiles with planetiler"},
+				Command: []string{"--force", fmt.Sprintf("--osm_path=/data/%s/data.osm.pbf", area)},
+				Volumes: []containers.Volume{
+					containers.Volume{Destination: "/data", Source: dataDir},
 				},
 			})
 
 			gtfsFeeds := tasks.GTFSDownload(cities[area])
 			gtfsDir := filepath.Join(dataDir, "gtfs")
 			for _, feed := range gtfsFeeds {
-				tasks.Download(feed.URL, filepath.Join(gtfsDir, feed.Filename))
+				tasks.Download(feed.URL, fmt.Sprintf("GTFS feed for %s", feed.Provider), filepath.Join(gtfsDir, feed.Filename))
 			}
 
-			tasks.RunContainer("opentripplanner/opentripplanner", tasks.RunContainerOptions{
+			containers.RunContainer(containers.Options{
+				Image:   "docker.io/opentripplanner/opentripplanner",
+				Name:    containers.TaskName{Before: "generate", During: "generating", After: "generated", Suffix: "transit graph with opentripplanner"},
 				Command: []string{"--build", "--save"},
-				Volumes: []tasks.ContainerVolume{
-					tasks.ContainerVolume{Destination: "/var/opentripplanner", Source: gtfsDir},
+				Volumes: []containers.Volume{
+					containers.Volume{Destination: "/var/opentripplanner", Source: gtfsDir},
+				},
+			})
+
+			containers.RunContainer(containers.Options{
+				Image:      "docker.io/gisops/valhalla",
+				Name:       containers.TaskName{Before: "build", During: "building", After: "built", Suffix: "tiles with valhalla"},
+				User:       "root",
+				Entrypoint: []string{"/bin/bash", "-exc"},
+				Command: []string{`
+chown valhalla /tiles
+sudo -u valhalla /bin/bash -exc '
+cd $(mktemp -d)
+/usr/local/bin/valhalla_build_config --mjolnir-tile-dir /tiles --mjolnir-timezone /tiles/timezones.sqlite --mjolnir-admin /tiles/admins.sqlite > valhalla.json
+valhalla_build_timezones > /tiles/timezones.sqlite
+valhalla_build_tiles -c valhalla.json /data.osm.pbf
+'
+`},
+				Volumes: []containers.Volume{
+					containers.Volume{Destination: "/tiles", Source: filepath.Join(dataDir, "tiles")},
+					containers.Volume{Destination: "/data.osm.pbf", Source: filepath.Join(areaDir, "data.osm.pbf")},
 				},
 			})
 		},

@@ -67,7 +67,7 @@ func (g *GTFSDownloadTask) Run() (task.Result, error) {
 		}
 
 		if len(row) < gtfsListMinExpectedColumns {
-			fmt.Println(" ⚠️ invalid line in gtfs feed list: ", g.processed)
+			fmt.Println("⚠️  invalid line in gtfs feed list: ", g.processed)
 			continue
 		}
 

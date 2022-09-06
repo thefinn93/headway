@@ -44,12 +44,12 @@ func Execute(task Task) {
 	}()
 
 	if err := p.Start(); err != nil {
-		fmt.Println(ErrorStyle(fmt.Sprintf(" %s %s", ResultIconError, err)))
+		fmt.Println(ErrorStyle(fmt.Sprintf("%s  %s", ResultIconError, err)))
 		os.Exit(1)
 	}
 
 	if m.err != nil {
-		fmt.Println(ErrorStyle(fmt.Sprintf(" %s %s", ResultIconError, m.err)))
+		fmt.Println(ErrorStyle(fmt.Sprintf("%s  %s", ResultIconError, m.err)))
 		os.Exit(1)
 	}
 
@@ -64,5 +64,5 @@ func Execute(task Task) {
 		message = m.result.Message
 	}
 
-	fmt.Println(TextStyle(fmt.Sprintf(" %s %s", emoji, message)))
+	fmt.Println(TextStyle(fmt.Sprintf("%s  %s", emoji, message)))
 }

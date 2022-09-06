@@ -21,15 +21,17 @@ var (
 type DownloadTask struct {
 	url      string
 	dest     string
+	name     string
 	progress *ProgressReader
 	message  string
 	changed  bool
 }
 
-func Download(url, dest string) bool {
+func Download(url, name, dest string) bool {
 	t := DownloadTask{
 		url:  url,
 		dest: dest,
+		name: name,
 	}
 	task.Execute(&t)
 	return t.changed
@@ -41,20 +43,20 @@ func (d DownloadTask) View() string {
 	}
 
 	if d.progress == nil {
-		return fmt.Sprintf("downloading %s to %s", d.url, d.dest)
+		return fmt.Sprintf("downloading %s", d.name)
 	}
 
 	if d.progress.Done() {
-		return fmt.Sprintf("downloaded %s to %s", d.url, d.dest)
+		return fmt.Sprintf("downloaded %s", d.name)
 	}
 
-	return fmt.Sprintf("downloading %s to %s (%.2f%%)", d.url, d.dest, d.progress.GetPercent()*100)
+	return fmt.Sprintf("downloading %s (%.2f%%)", d.name, d.progress.GetPercent()*100)
 
 }
 
 func (d *DownloadTask) Run() (task.Result, error) {
 	dir := filepath.Dir(d.dest)
-	if err := os.Mkdir(dir, 0755); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(dir, 0755); err != nil && !os.IsExist(err) {
 		return task.Result{}, fmt.Errorf("error creating directory %s: %v", dir, err)
 	}
 
@@ -71,7 +73,7 @@ func (d *DownloadTask) Run() (task.Result, error) {
 	if !shouldRedownload(resp.Header, existing) {
 		return task.Result{
 			Icon:    task.ResultIconUnchanged,
-			Message: fmt.Sprintf("%s is up to date", d.dest),
+			Message: fmt.Sprintf("%s is up to date", d.name),
 		}, nil
 	}
 
@@ -98,12 +100,12 @@ func (d *DownloadTask) Run() (task.Result, error) {
 
 	_, err = io.Copy(f, d.progress)
 	if err != nil {
-		return task.Result{}, fmt.Errorf("error downloading %s to %s: %v", d.url, d.dest, err)
+		return task.Result{}, fmt.Errorf("error downloading %s: %v", d.name, err)
 	}
 
 	return task.Result{
 		Icon:    task.ResultIconSuccess,
-		Message: fmt.Sprintf("downloaded %s to %s", d.url, d.dest),
+		Message: fmt.Sprintf("downloaded %s", d.name),
 	}, nil
 }
 
@@ -134,6 +136,7 @@ func shouldRedownload(headers http.Header, existing os.FileInfo) bool {
 	}
 
 	// TODO: even if Last-Modified header is older, compare size on disk with Content-Length header to detect partial downloads
+	// TODO: can we do something for Google storage? a lot of stuff comes from there and it doesnt have a last modified time. it does have an etag and some other stuff
 
 	return true
 }

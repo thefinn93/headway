@@ -1,4 +1,4 @@
-package tasks
+package containers
 
 import (
 	"context"
@@ -17,22 +17,37 @@ import (
 	"github.com/headwaymaps/headway/cmd/headway-build/tasks/task"
 )
 
-type Podman3RunTask struct {
-	image   string
+type podman3RunTask struct {
 	started *time.Time
 	status  string
-	opts    RunContainerOptions
+	opts    Options
+	log     containerLogger
+	done    bool
 }
 
-func (p Podman3RunTask) View() string {
+func (p podman3RunTask) View() string {
 	if p.started == nil {
 		return p.status
 	}
 
-	return fmt.Sprintf("%s (%s)", p.status, time.Since(*p.started).Truncate(time.Second))
+	out := fmt.Sprintf("%s (%s)\ncontainer logs:", p.status, time.Since(*p.started).Truncate(time.Second))
+	if p.done {
+		return out
+	}
+
+	for l := range p.log.Iter() {
+		out = out + "\n"
+		if l.stderr {
+			out = out + stderrStyle(l.line)
+		} else {
+			out = out + l.line
+		}
+	}
+
+	return out
 }
 
-func (p *Podman3RunTask) Run() (task.Result, error) {
+func (p *podman3RunTask) Run() (task.Result, error) {
 	p.restartTimer("connecting to podman")
 
 	ctx, err := bindings.NewConnection(context.Background(), getPodmanSocket())
@@ -40,18 +55,20 @@ func (p *Podman3RunTask) Run() (task.Result, error) {
 		return task.Result{}, fmt.Errorf("error connecting to podman: %v", err)
 	}
 
-	p.restartTimer(fmt.Sprintf("pulling image %s", p.image))
+	p.restartTimer(fmt.Sprintf("pulling image %s to run %s %s", p.opts.Image, p.opts.Name.Before, p.opts.Name.Suffix))
 
 	t := true
-	_, err = images.Pull(ctx, p.image, &images.PullOptions{Quiet: &t})
+	_, err = images.Pull(ctx, p.opts.Image, &images.PullOptions{Quiet: &t})
 	if err != nil {
-		return task.Result{}, fmt.Errorf("error pulling image %s: %v", p.image, err)
+		return task.Result{}, fmt.Errorf("error pulling image %s: %v", p.opts.Image, err)
 	}
 
-	p.restartTimer(fmt.Sprintf("booting container"))
+	p.restartTimer(fmt.Sprintf("booting container to %s %s", p.opts.Name.Before, p.opts.Name.Suffix))
 
-	s := specgen.NewSpecGenerator(p.image, false)
+	s := specgen.NewSpecGenerator(p.opts.Image, false)
+	s.Entrypoint = p.opts.Entrypoint
 	s.Command = p.opts.Command
+	s.User = p.opts.User
 	s.Mounts = []specs.Mount{}
 
 	for _, vol := range p.opts.Volumes {
@@ -69,7 +86,7 @@ func (p *Podman3RunTask) Run() (task.Result, error) {
 	}
 
 	for _, warning := range r.Warnings {
-		fmt.Println("⚠️ " + warning)
+		fmt.Println("⚠️  " + warning)
 	}
 
 	err = containers.Start(ctx, r.ID, &containers.StartOptions{})
@@ -77,28 +94,37 @@ func (p *Podman3RunTask) Run() (task.Result, error) {
 		return task.Result{}, fmt.Errorf("error starting container: %s", err)
 	}
 
-	_, err = containers.Wait(ctx, r.ID, &containers.WaitOptions{
-		Condition: []define.ContainerStatus{define.ContainerStateRunning},
-	})
+	p.restartTimer(fmt.Sprintf("%s %s", p.opts.Name.During, p.opts.Name.Suffix))
+
+	err = containers.Attach(ctx, r.ID, nil, p.log.Stdout(), p.log.Stderr(), nil, nil)
 	if err != nil {
-		return task.Result{}, fmt.Errorf("error waiting for container to start: %v", err)
+		return task.Result{}, fmt.Errorf("error attaching to container stdout: %v", err)
 	}
 
-	p.restartTimer(fmt.Sprintf("running %s", p.image))
-
-	_, err = containers.Wait(ctx, r.ID, &containers.WaitOptions{
+	exitCode, err := containers.Wait(ctx, r.ID, &containers.WaitOptions{
 		Condition: []define.ContainerStatus{define.ContainerStateStopped},
 	})
 	if err != nil {
 		return task.Result{}, fmt.Errorf("error waiting for container to start: %v", err)
 	}
 
-	p.status = fmt.Sprintf("ran %s", p.image)
+	p.done = true
+
+	if exitCode != 0 {
+		return task.Result{}, fmt.Errorf("%s %s exited with code %d", p.opts.Name.Before, p.opts.Name.Suffix, exitCode)
+	}
+
+	err = containers.Remove(ctx, r.ID, nil)
+	if err != nil {
+		return task.Result{}, fmt.Errorf("error cleaning up container: %v", err)
+	}
+
+	p.status = fmt.Sprintf("%s %s", p.opts.Name.After, p.opts.Name.Suffix)
 
 	return task.Result{Icon: task.ResultIconSuccess}, nil
 }
 
-func (p *Podman3RunTask) restartTimer(status string) {
+func (p *podman3RunTask) restartTimer(status string) {
 	t := time.Now()
 	p.started = &t
 	p.status = status
@@ -112,7 +138,7 @@ func getPodmanSocket() string {
 	return fmt.Sprintf("unix:%s/podman/podman.sock", sockDir)
 }
 
-func getPodman3Mount(vol ContainerVolume) (specs.Mount, error) {
+func getPodman3Mount(vol Volume) (specs.Mount, error) {
 	source, err := filepath.Abs(vol.Source)
 	if err != nil {
 		return specs.Mount{}, err
