@@ -32,7 +32,7 @@ type Result struct {
 func Execute(task Task) {
 	m := newModel(task)
 
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(&m)
 
 	go func() {
 		result, err := m.task.Run()
@@ -65,4 +65,8 @@ func Execute(task Task) {
 	}
 
 	fmt.Println(TextStyle(fmt.Sprintf("%s  %s", emoji, message)))
+	
+	if m.quit {
+		os.Exit(1)
+	}
 }

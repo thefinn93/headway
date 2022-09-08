@@ -13,15 +13,16 @@ import (
 
 var (
 	dataDir string
-	area    string
-	country string
+	// area    string
+	// country string
 	rootCmd = &cobra.Command{
 		Use:   "headway-build",
 		Short: "builds headway components",
 		Run: func(_ *cobra.Command, _ []string) {
-			areaDir := filepath.Join(dataDir, area)
+			metro := tasks.GetMetro(metros)
+			areaDir := filepath.Join(dataDir, metro.Name)
 
-			tasks.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", area, area), fmt.Sprintf("%s.osm.pbf", area), filepath.Join(areaDir, "data.osm.pbf"))
+			tasks.Download(fmt.Sprintf("https://download.bbbike.org/osm/bbbike/%s/%s.osm.pbf", metro.Name, metro.Name), fmt.Sprintf("%s.osm.pbf", metro.Name), filepath.Join(areaDir, "data.osm.pbf"))
 
 			if tasks.Download("https://f000.backblazeb2.com/file/headway/sources.tar", "planetiler sources", filepath.Join(dataDir, "sources.tar")) {
 				tasks.Untar(filepath.Join(dataDir, "sources.tar"), filepath.Join(dataDir, "sources"))
@@ -30,13 +31,13 @@ var (
 			containers.RunContainer(containers.Options{
 				Image:   "ghcr.io/onthegomap/planetiler",
 				Name:    containers.TaskName{Before: "generate", During: "generating", After: "generated", Suffix: "mbtiles with planetiler"},
-				Command: []string{"--force", fmt.Sprintf("--osm_path=/data/%s/data.osm.pbf", area)},
+				Command: []string{"--force", fmt.Sprintf("--osm_path=/data/%s/data.osm.pbf", metro.Name)},
 				Volumes: []containers.Volume{
 					containers.Volume{Destination: "/data", Source: dataDir},
 				},
 			})
 
-			gtfsFeeds := tasks.GTFSDownload(cities[area])
+			gtfsFeeds := tasks.GTFSDownload(metro.Coords)
 			gtfsDir := filepath.Join(dataDir, "gtfs")
 			for _, feed := range gtfsFeeds {
 				tasks.Download(feed.URL, fmt.Sprintf("GTFS feed for %s", feed.Provider), filepath.Join(gtfsDir, feed.Filename))
@@ -76,8 +77,8 @@ valhalla_build_tiles -c valhalla.json /data.osm.pbf
 
 func init() {
 	rootCmd.Flags().StringVarP(&dataDir, "data-dir", "d", "data", "directory to store downloaded artifacts in during build. will be created if needed")
-	rootCmd.Flags().StringVarP(&area, "area", "a", "", "the metro area to build")
-	rootCmd.Flags().StringVarP(&country, "country", "c", "", "the country that the metro area is in")
+	// rootCmd.Flags().StringVarP(&area, "area", "a", "", "the metro area to build")
+	// rootCmd.Flags().StringVarP(&country, "country", "c", "", "the country that the metro area is in")
 }
 
 func main() {
