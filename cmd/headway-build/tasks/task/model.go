@@ -24,7 +24,7 @@ type model struct {
 }
 
 func newModel(task Task) model {
-	s := spinner.New(spinner.WithSpinner(spinner.Dot))
+	s := spinner.New(spinner.WithSpinner(Spinner))
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
 
 	return model{
@@ -62,5 +62,5 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return " " + m.spinner.View() + TextStyle(m.task.View())
+	return m.spinner.View() + " " + TextStyle(m.task.View())
 }

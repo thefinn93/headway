@@ -89,7 +89,7 @@ func (p *podman3RunTask) Run() (task.Result, error) {
 	}
 
 	for _, warning := range r.Warnings {
-		fmt.Println("⚠️  " + warning)
+		fmt.Println("⚠️ " + warning)
 	}
 
 	err = containers.Start(ctx, r.ID, &containers.StartOptions{})

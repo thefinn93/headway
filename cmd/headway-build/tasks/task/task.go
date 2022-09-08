@@ -64,7 +64,7 @@ func Execute(task Task) {
 		message = m.result.Message
 	}
 
-	fmt.Println(TextStyle(fmt.Sprintf("%s  %s", emoji, message)))
+	fmt.Println(TextStyle(fmt.Sprintf("%s %s", emoji, message)))
 
 	if m.quit {
 		os.Exit(1)
