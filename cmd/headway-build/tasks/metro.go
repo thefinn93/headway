@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/bubbles/key"
 
 	"github.com/headwaymaps/headway/cmd/headway-build/tasks/task"
 )
@@ -26,16 +26,14 @@ type Metro struct {
 }
 
 type metroSelect struct {
-	list      list.Model
+	list list.Model
 	quit bool
 	done bool
 }
 
-
 func (m Metro) Title() string       { return m.Name }
 func (m Metro) Description() string { return m.Country }
 func (m Metro) FilterValue() string { return m.Name }
-
 
 func (t metroSelect) Init() tea.Cmd {
 	return nil
@@ -45,11 +43,11 @@ func (t *metroSelect) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if key.Matches(msg, t.list.KeyMap.Quit, t.list.KeyMap.ForceQuit) {
-				t.quit = true
-				return t, tea.Quit
+			t.quit = true
+			return t, tea.Quit
 		}
 
-		if msg.String() == "enter" {
+		if t.list.FilterState() != list.Filtering && msg.String() == "enter" {
 			return t, tea.Quit
 		}
 	case tea.WindowSizeMsg:
@@ -80,7 +78,9 @@ func GetMetro(items []list.Item) Metro {
 	}
 
 	m.list.Title = "select metro area"
-	m.list.SetShowFilter(true)
+
+	// can't auto-activate the filter (https://github.com/charmbracelet/bubbles/issues/85)
+	m.list.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{rune('/')}})
 
 	if err := tea.NewProgram(&m, tea.WithAltScreen()).Start(); err != nil {
 		fmt.Println(task.ErrorStyle(fmt.Sprintf("%s  %s", task.ResultIconError, err)))

@@ -65,7 +65,7 @@ func Execute(task Task) {
 	}
 
 	fmt.Println(TextStyle(fmt.Sprintf("%s  %s", emoji, message)))
-	
+
 	if m.quit {
 		os.Exit(1)
 	}

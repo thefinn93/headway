@@ -1,10 +1,10 @@
 package task
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/bubbles/key"
 )
 
 var (
@@ -20,7 +20,7 @@ type model struct {
 	done    bool
 	err     error
 	result  Result
-	quit bool
+	quit    bool
 }
 
 func newModel(task Task) model {
